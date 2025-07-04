@@ -1,0 +1,15 @@
+[tools]
+python = "3.13"
+ruff = "latest"
+uv = "latest"
+
+[settings]
+python.uv_venv_auto = true
+
+[tasks]
+"ruff:check" = "ruff check ."
+test = "PYTHONPATH=. pytest"
+ybb = "python -m ybb"
+
+[tasks.check]
+depends = ["ruff:check", "test"]
