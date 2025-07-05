@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+import re
 from typing import List, Optional, Union, Dict, Any
 import json
 
@@ -7,12 +8,94 @@ from rich.text import Text
 from rich.tree import Tree as RichTree
 from ybb.data_types import Frame, Window as RawWindow, SplitType
 from ybb import console
+
 @dataclass(frozen=True)
-class FindResult:
+class WindowContext:
     window: Window
+    tree: Node
     ancestors: List[Split]
     is_first_child: bool
     parent_stack: Optional[Stack] = None
+
+    def consecutive_split_siblings(self) -> List[Window]:
+        """
+        Returns all the windows that are split along the same axis and have the same dimensions on the split axis as the current window.
+        This function conceptually reanalyzes the BSP layout as a tree of splits with flexible number of children for each split.
+        For example, given the BSP tree below:
+        HSplit(
+            VSplit(
+                VSplit(
+                    Window(1),
+                    Window(2),
+                ),
+                VSplit(
+                    Window(3),
+                    HSplit(
+                        Window(4),
+                        Window(5),
+                    ),
+                ),
+            ),
+            Window(6),
+        )
+        And starting at window 3, the function should return windows [1, 2, 3].
+        Windows 4 and 5 are split on a different axis and do not share the same
+        dimensions. Window 6 is on the same axis and share the same dimensions,
+        but it is separated from windows [1, 2, 3] by the opposite split that
+        contains windows [4, 5], so it is not considered a consecutive sibling.
+        """
+        if self.parent_stack and len(self.parent_stack.windows) > 1:
+            return self.parent_stack.windows
+
+        ancestors = self.ancestors
+        if not ancestors:
+            # If the window has no ancestors, the window is the root window.
+            # The root window has no split siblings.
+            return [self.window]
+
+        direct_parent_split = ancestors[-1]
+        our_split_type = direct_parent_split.split_type
+
+        # Find the furthest ancestor that has the same (consecutive)split type as the direct parent split.
+        start_node = direct_parent_split
+        for potential_ancestor in reversed(ancestors[:-1]):
+            if potential_ancestor.split_type == our_split_type:
+                start_node = potential_ancestor
+            else:
+                break
+
+        consecutive_siblings: List[Window] = []
+        consecutive_siblings_groups = [consecutive_siblings]
+
+        def _traverse(current_node: Node):
+            nonlocal consecutive_siblings
+            match current_node:
+                case Window():
+                    consecutive_siblings.append(current_node)
+                case Stack():
+                    consecutive_siblings.extend(current_node.windows)
+                case Split(split_type=split_type):
+                    if split_type == our_split_type:
+                        _traverse(current_node.first_child)
+                        _traverse(current_node.second_child)
+                    else:
+                        # If the split type does not match, we have a break. Any
+                        # siblings that are found later are non-consecutive, and
+                        # must be counted in another group, so we create a new group
+                        # instead of the current one.
+                        consecutive_siblings = []
+                        consecutive_siblings_groups.append(consecutive_siblings)
+
+                case _:
+                    raise ValueError(f"Unknown node type: {type(current_node)}")
+
+        _traverse(start_node)
+
+        # Short circuit if there is only one group.
+        if len(consecutive_siblings_groups) == 1:
+            return consecutive_siblings_groups[0]
+
+        return next((x for x in consecutive_siblings_groups if self.window in x), [self.window])
 
 @dataclass(frozen=True)
 class Window:
@@ -41,12 +124,12 @@ class Window:
             "type": "window"
         }
 
-    def find_window(self, window_id: int) -> Optional[FindResult]:
-        return self._find_window(window_id, [], False)
+    def find_window(self, window_id: int) -> Optional[WindowContext]:
+        return self._find_window(self, window_id, [], False)
     
-    def _find_window(self, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[FindResult]: # type: ignore
+    def _find_window(self, tree: Node, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[WindowContext]: # type: ignore
         if self.id == window_id:
-            return FindResult(self, ancestors, is_first_child)
+            return WindowContext(self, tree, ancestors, is_first_child)
         return None
 
 @dataclass(frozen=True)
@@ -63,13 +146,13 @@ class Stack:
             "type": "stack"
         }
 
-    def find_window(self, window_id: int) -> Optional[FindResult]:
-        return self._find_window(window_id, [], False)
+    def find_window(self, window_id: int) -> Optional[WindowContext]:
+        return self._find_window(self, window_id, [], False)
 
-    def _find_window(self, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[FindResult]:
+    def _find_window(self, tree: Node, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[WindowContext]:
         for window in self.windows:
             if window.id == window_id:
-                return FindResult(window, ancestors, is_first_child, parent_stack=self)
+                return WindowContext(window, tree, ancestors, is_first_child, parent_stack=self)
         return None
 
 @dataclass(frozen=True)
@@ -90,17 +173,18 @@ class Split:
             "type": "split"
         }
 
-    def find_window(self, window_id: int) -> Optional[FindResult]:
-        return self._find_window(window_id, [], False)
+    def find_window(self, window_id: int) -> Optional[WindowContext]:
+        return self._find_window(self, window_id, [], False)
 
-    def _find_window(self, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[FindResult]:
+    def _find_window(self, tree: Node, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[WindowContext]:
         ancestors.append(self)
-        result = self.first_child._find_window(window_id, ancestors, True)
+        result = self.first_child._find_window(tree, window_id, ancestors, True)
         if result:
             return result
-        result = self.second_child._find_window(window_id, ancestors, False)
+        result = self.second_child._find_window(tree, window_id, ancestors, False)
         if result:
             return result
+        ancestors.pop()
         return None
 
 class TreeEncoder(json.JSONEncoder):
