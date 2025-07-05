@@ -3,7 +3,7 @@ import json
 import logging
 from enum import Enum
 from rich.logging import RichHandler
-from .yabai import WindowSelector, yabai, YabaiError
+from .yabai import yabai, YabaiError
 from .tree import reconstruct_tree, TreeEncoder, print_rich_tree
 from .commands.stack import stack_command
 from .commands.resize import resize_command

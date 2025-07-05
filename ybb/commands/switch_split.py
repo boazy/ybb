@@ -1,10 +1,9 @@
 import typer
 import logging
-from typing import List
 from ..yabai import yabai, YabaiError
 from ..tree import WindowContext
-from ..data_types import AdditionalInsertDirection, SplitType
-from ..tree import reconstruct_tree, Split, Window, Stack, Node
+from ..data_types import SplitType
+from ..tree import reconstruct_tree
 
 # Note: This doesn't really work well with Yabai.
 def _switch_split_direction(found_node: WindowContext):
