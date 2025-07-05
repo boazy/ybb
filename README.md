@@ -7,6 +7,7 @@ high-level commands for managing windows and spaces in a BSP (Binary Space Parti
 
 - 🌳 **BSP Tree Visualization** - Reconstruct and visualize your window layout as a tree structure
 - 📚 **Smart Window Stacking** - Automatically stack window siblings based on split orientation
+- 🔄 **Split Direction Switching** - Switch the split direction of consecutive window siblings
 - 🎯 **Intelligent Window Resizing** - Context-aware resizing that understands your BSP layout
 - 🎨 **Rich Console Output** - Beautiful colored output with automatic terminal detection
 - 🔧 **Flexible Configuration** - Global options for verbosity and color control
@@ -101,6 +102,29 @@ ybb window layout stack --window 1234 --toggle
 - If the window is part of a stack → unrolls the stack into balanced splits in the opposite direction
 - If the window is not in a stack → stacks it with its siblings as normal
 
+#### `ybb window layout switch-split`
+
+Switches the split direction of consecutive split siblings. This command finds all windows that are split along the same axis and recreates them as splits in the opposite direction, maintaining the same order.
+
+```bash
+# Switch split direction for focused window's siblings
+ybb window layout switch-split
+
+# Switch split direction for specific window's siblings
+ybb window layout switch-split --window 1234
+
+# With verbose output to see the operation
+ybb --verbose window layout switch-split
+```
+
+**How it works:**
+- Finds all consecutive split siblings of the target window
+- Determines current split direction (vertical/horizontal)
+- Recreates the splits in the opposite direction
+- Maintains the relative order of windows
+
+**Example:** If you have 3 windows split vertically (side-by-side), this command will rearrange them to be split horizontally (stacked on top of each other).
+
 #### `ybb window resize`
 
 Intelligently resizes windows based on their position in the BSP tree.
@@ -133,6 +157,9 @@ ybb --verbose window layout stack
 # Toggle stack/unstack with verbose output
 ybb --verbose window layout stack --toggle
 
+# Switch split direction with verbose output
+ybb --verbose window layout switch-split
+
 # Resize with colors always on (useful for scripts)
 ybb --color always window resize 50
 ```
@@ -145,6 +172,7 @@ ybb --verbose space tree -p -N
 
 # Batch operations with color disabled
 ybb --color off window layout stack
+ybb --color off window layout switch-split
 ybb --color off window resize 25
 ```
 
@@ -221,6 +249,7 @@ pytest tests/
 python -m ybb space tree
 python -m ybb space tree -p
 python -m ybb window layout stack
+python -m ybb window layout switch-split
 python -m ybb window resize 50
 ```
 
@@ -237,6 +266,7 @@ ybb/
 ├── console.py           # Rich console integration
 └── commands/
     ├── stack.py         # Window stacking functionality
+    ├── switch_split.py  # Split direction switching
     └── resize.py        # Smart window resizing
 ```
 
