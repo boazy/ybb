@@ -1,16 +1,21 @@
 # YBB CLI Project State
 
 ## Overview
-YBB is a CLI tool that extends the yabai window manager for macOS. It provides high-level commands for managing windows and spaces in a BSP (Binary Space Partitioning) layout.
+
+YBB is a CLI tool that extends the yabai window manager for macOS. It provides
+high-level commands for managing windows and spaces in a BSP (Binary Space
+Partitioning) layout.
 
 ## Architecture
+
 - **Language**: Python 3.13+
 - **CLI Framework**: Typer
 - **Package Manager**: uv
-- **Dependencies**: typer, rich, shellingham, dataclasses-json
+- **Dependencies**: typer, rich, dataclasses-json
 
 ## Project Structure
-```
+
+```text
 ybb/
 ├── __init__.py
 ├── __main__.py
@@ -66,7 +71,9 @@ ybb/
 ## Command Interface
 
 ### Global Options
+
 All commands support these global options:
+
 - `--verbose`, `-V`: Enable verbose logging and debugging output
 - `--color MODE`: Control color output mode
   - `always`: Force color output with truecolor support
@@ -74,23 +81,27 @@ All commands support these global options:
   - `off`: Disable all color output
 
 ### Available Commands
+
 - `ybb space tree [-s SPACE] [-o FORMAT] [-N]`: Reconstruct and display BSP tree
 - `ybb window layout stack [-w WINDOW]`: Stack window siblings
 - `ybb window resize INCREMENT [-w WINDOW]`: Smart window resize
 
 ### Command Architecture
+
 - Main CLI in `main.py` with Typer sub-applications
 - Commands delegate to separate modules in `commands/`
 - Consistent error handling with YabaiError exceptions
 - Rich console integration for enhanced output formatting
 
 ## Development Environment
+
 - **Python**: 3.13+ (managed by mise)
 - **Package Manager**: uv
 - **Testing**: pytest (basic tests in `tests/test_tree.py`)
 - **Configuration**: pyproject.toml for dependencies
 
 ## Project Status
+
 The YBB CLI tool is **fully functional** with all core features working correctly:
 
 - ✅ BSP tree reconstruction and visualization
@@ -103,6 +114,7 @@ The YBB CLI tool is **fully functional** with all core features working correctl
 - ✅ Comprehensive logging and debugging
 
 ## Usage Examples
+
 ```bash
 # Display BSP tree for current space
 ybb space tree
@@ -130,6 +142,7 @@ ybb --color off space tree
 ```
 
 ## Test Commands
+
 - `pytest tests/` - Run test suite
 - `python -m ybb space tree` - Display BSP tree
 - `python -m ybb window layout stack` - Stack window siblings

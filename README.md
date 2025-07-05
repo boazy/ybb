@@ -1,6 +1,7 @@
 # YBB - Yabai BSP Builder
 
-A powerful CLI tool that extends the [yabai](https://github.com/koekeishiya/yabai) window manager for macOS with high-level commands for managing windows and spaces in a BSP (Binary Space Partitioning) layout.
+A powerful CLI tool that extends the [yabai](https://github.com/koekeishiya/yabai) window manager for macOS with
+high-level commands for managing windows and spaces in a BSP (Binary Space Partitioning) layout.
 
 ## Features
 
@@ -65,7 +66,8 @@ ybb space tree --space 2
 ```
 
 **Example tree output:**
-```
+
+```tree
 📱 Space 1 (bsp)
 ├─ 🪟 Terminal (1234)
 └─ ┤ vertical
@@ -143,6 +145,7 @@ YBB works by:
 ### BSP Tree Reconstruction
 
 The tool reconstructs the binary space partitioning tree by:
+
 - Analyzing window frames and positions
 - Detecting split orientations (vertical/horizontal)
 - Identifying stacked windows
@@ -151,6 +154,7 @@ The tool reconstructs the binary space partitioning tree by:
 ### Smart Resizing Logic
 
 Window resizing is context-aware:
+
 - **Vertical splits**: Adjusts left/right edges based on window position
 - **Horizontal splits**: Adjusts top/bottom edges based on window position
 - **Child position**: Determines which edge to move for intuitive behavior
@@ -158,6 +162,7 @@ Window resizing is context-aware:
 ### Stack Detection
 
 The stacking algorithm:
+
 - Traverses the BSP tree to find split siblings
 - Groups windows by their split orientation
 - Executes yabai stack commands to create window stacks
@@ -200,7 +205,7 @@ python -m ybb window resize 50
 
 ### Project Structure
 
-```
+```tree
 ybb/
 ├── __init__.py          # Package initialization
 ├── __main__.py          # CLI entry point
