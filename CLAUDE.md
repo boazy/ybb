@@ -41,6 +41,7 @@ ybb/
 2. **Space Tree Command** (`ybb space tree`)
    - Reconstructs BSP tree from window layout
    - Supports JSON and tree output formats
+   - Pretty-print option for convenient tree visualization
    - Nerd font icon support for tree visualization
    - Handles stacked windows properly
 
@@ -48,6 +49,8 @@ ybb/
    - Complete algorithm implementation
    - Tree traversal and stacking logic
    - Proper window selection and stacking execution
+   - Toggle functionality for stacking/unstacking
+   - Smart unroll logic that creates balanced splits in opposite direction
    - All data access patterns fixed
 
 4. **Smart Resize** (`ybb window resize`)
@@ -82,8 +85,8 @@ All commands support these global options:
 
 ### Available Commands
 
-- `ybb space tree [-s SPACE] [-o FORMAT] [-N]`: Reconstruct and display BSP tree
-- `ybb window layout stack [-w WINDOW]`: Stack window siblings
+- `ybb space tree [-s SPACE] [-o FORMAT] [-p] [-N]`: Reconstruct and display BSP tree
+- `ybb window layout stack [-w WINDOW] [--toggle]`: Stack window siblings or toggle stack/unstack
 - `ybb window resize INCREMENT [-w WINDOW]`: Smart window resize
 
 ### Command Architecture
@@ -105,7 +108,7 @@ All commands support these global options:
 The YBB CLI tool is **fully functional** with all core features working correctly:
 
 - ✅ BSP tree reconstruction and visualization
-- ✅ Window stacking operations
+- ✅ Window stacking operations with toggle functionality
 - ✅ Smart window resizing
 - ✅ Proper yabai integration
 - ✅ Clean data access patterns
@@ -116,17 +119,24 @@ The YBB CLI tool is **fully functional** with all core features working correctl
 ## Usage Examples
 
 ```bash
-# Display BSP tree for current space
+# Display BSP tree for current space (JSON format)
 ybb space tree
 
+# Display tree in pretty-print format
+ybb space tree --pretty-print
+ybb space tree -p
+
 # Display tree with nerd font icons and verbose logging
-ybb --verbose space tree -N
+ybb --verbose space tree -p -N
 
 # Display tree with colors forced on (useful for piping)
-ybb --color always space tree
+ybb --color always space tree -p
 
 # Stack siblings of focused window
 ybb window layout stack
+
+# Toggle between stacked and unstacked layout
+ybb window layout stack --toggle
 
 # Resize focused window by 50 pixels
 ybb window resize 50
@@ -144,7 +154,9 @@ ybb --color off space tree
 ## Test Commands
 
 - `pytest tests/` - Run test suite
-- `python -m ybb space tree` - Display BSP tree
+- `python -m ybb space tree` - Display BSP tree (JSON format)
+- `python -m ybb space tree -p` - Display BSP tree in pretty-print format
 - `python -m ybb window layout stack` - Stack window siblings
+- `python -m ybb window layout stack --toggle` - Toggle stack/unstack
 - `python -m ybb window resize 50` - Resize focused window
 - `python -m ybb window resize -- -50` - Shrink focused window

@@ -1,10 +1,62 @@
-from dataclasses import dataclass, field
-from dataclasses_json import LetterCase, dataclass_json, Undefined
+from dataclasses import dataclass
+from dataclasses_json import LetterCase, DataClassJsonMixin, Undefined
 from typing import List, Optional
+from enum import Enum
 
-@dataclass_json(undefined=Undefined.EXCLUDE, letter_case=LetterCase.KEBAB)
+class SplitType(Enum):
+    VERTICAL = "vertical"
+    HORIZONTAL = "horizontal"
+
+    def opposite(self) -> 'SplitType':
+        match self:
+            case SplitType.VERTICAL:
+                return SplitType.HORIZONTAL
+            case SplitType.HORIZONTAL:
+                return SplitType.VERTICAL
+
+    def start_direction(self) -> 'CardinalDirection':
+        match self:
+            case SplitType.VERTICAL:
+                return CardinalDirection.NORTH
+            case SplitType.HORIZONTAL:
+                return CardinalDirection.WEST
+    
+    def end_direction(self) -> 'CardinalDirection':
+        match self:
+            case SplitType.VERTICAL:
+                return CardinalDirection.SOUTH
+            case SplitType.HORIZONTAL:
+                return CardinalDirection.EAST
+
+class CardinalDirection(Enum):
+    NORTH = "north"
+    SOUTH = "south"
+    EAST = "east"
+    WEST = "west"
+
+    def opposite(self) -> 'CardinalDirection':
+        match self:
+            case CardinalDirection.NORTH:
+                return CardinalDirection.SOUTH
+            case CardinalDirection.SOUTH:
+                return CardinalDirection.NORTH
+            case CardinalDirection.EAST:
+                return CardinalDirection.WEST
+            case CardinalDirection.WEST:
+                return CardinalDirection.EAST
+
+class AdditionInsertDirections(Enum):
+    STACK = "stack"
+
+InsertDirection = CardinalDirection | AdditionInsertDirections
+
 @dataclass(frozen=True)
-class Frame:
+class Frame(DataClassJsonMixin):
+    dataclass_json_config = {
+        "undefined": Undefined.EXCLUDE,
+        "letter_case": LetterCase.KEBAB
+    }
+    
     x: float
     y: float
     w: float
@@ -36,9 +88,13 @@ class Frame:
 
 
 
-@dataclass_json(undefined=Undefined.EXCLUDE, letter_case=LetterCase.KEBAB)
 @dataclass
-class Window:
+class Window(DataClassJsonMixin):
+    dataclass_json_config = {
+        "undefined": Undefined.EXCLUDE,
+        "letter_case": LetterCase.KEBAB
+    }
+    
     id: int
     pid: int
     app: str
@@ -73,9 +129,13 @@ class Window:
     is_sticky: bool
     is_grabbed: bool
 
-@dataclass_json(undefined=Undefined.EXCLUDE, letter_case=LetterCase.KEBAB)
 @dataclass
-class Space:
+class Space(DataClassJsonMixin):
+    dataclass_json_config = {
+        "undefined": Undefined.EXCLUDE,
+        "letter_case": LetterCase.KEBAB
+    }
+    
     id: int
     uuid: str
     index: int

@@ -1,8 +1,7 @@
 import typer
-import sys
 import logging
 from ..yabai import yabai, YabaiError
-from ..tree import SplitType
+from ..data_types import SplitType
 from ..tree import reconstruct_tree
 
 def resize_command(

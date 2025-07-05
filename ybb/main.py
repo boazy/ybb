@@ -1,6 +1,5 @@
 import typer
 import json
-import sys
 import logging
 from enum import Enum
 from rich.logging import RichHandler
@@ -60,15 +59,17 @@ window_app.add_typer(layout_app, name="layout")
 
 @layout_app.command(name="stack")
 def _stack(
-    window: str = typer.Option("focused", "--window", "-w", help="Window to stack.", metavar="WINDOW_SEL")
+    window: str = typer.Option("focused", "--window", "-w", help="Window to stack.", metavar="WINDOW_SEL"),
+    toggle: bool = typer.Option(False, "--toggle", help="Toggle between stacking and unstacking.")
 ):
-    stack_command(window)
+    stack_command(window, toggle)
 
 @space_app.command()
 def tree(
     space: str = typer.Option("focused", "--space", "-s", help="Space to reconstruct the tree for.", metavar="SPACE_SEL"),
     output_format: OutputFormat = typer.Option(OutputFormat.json, "--output-format", "-o", help="Output format (json or tree).", metavar="FORMAT"),
-    nerd_font: bool = typer.Option(False, "--nerd-font", "-N", help="Use Nerd Font icons in tree output.")
+    nerd_font: bool = typer.Option(False, "--nerd-font", "-N", help="Use Nerd Font icons in tree output."),
+    pretty_print: bool = typer.Option(False, "--pretty-print", "-p", help="Use tree format in output.")
 ):
     """
     Reconstructs the BSP tree of the space and returns it as JSON or a formatted tree.
@@ -93,6 +94,9 @@ def tree(
 
         tree_structure = reconstruct_tree(windows)
 
+        if pretty_print:
+            output_format = OutputFormat.tree
+
         if output_format == OutputFormat.json:
             print(json.dumps(tree_structure, indent=2, cls=TreeEncoder))
         elif output_format == OutputFormat.tree:
@@ -101,7 +105,7 @@ def tree(
             print(output, end='')  # Rich output already includes newlines
 
     except YabaiError as e:
-        logging.error(f"[red]Error:[/red] {e}")
+        logging.error(f"[red] Error:[/red] {e}")
         raise typer.Exit(code=1)
 
 @window_app.command(name="resize")

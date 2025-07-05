@@ -1,11 +1,9 @@
 from __future__ import annotations
 import subprocess
-import json
 import logging
-from typing import Any, List, Dict, Optional
-from typing_extensions import Union
+from typing import Any, List, Optional
 
-from ybb.data_types import Space as RawSpace, Window as RawWindow
+from ybb.data_types import CardinalDirection, InsertDirection, Space as RawSpace, Window as RawWindow
 
 logger = logging.getLogger('yabai')
 
@@ -13,7 +11,7 @@ class YabaiError(Exception):
     """Raised when a yabai command fails."""
     pass
 
-def call(args: List[str]) -> Optional[str]:
+def call(args: List[str]) -> str:
     """
     A low-level function that wraps calling all yabai commands.
 
@@ -21,17 +19,18 @@ def call(args: List[str]) -> Optional[str]:
         args: A list of strings representing the command and its arguments.
 
     Returns:
-        The stdout returned by yabai, parsed as JSON if possible.
+        The stdout returned by yabai
 
     Raises:
-        YabaiError: If the yabai command returns a non-zero exit code.
+        YabaiError: If the yabai command returns a non-zero exit code
     """
     logger.debug(f"[bright_black]> yabai {' '.join(args)}[/bright_black]")
     try:
         result = subprocess.run(["yabai"] + args, capture_output=True, text=True, check=True)
         if result.stdout:
             return result.stdout.strip()
-        return None
+        else:
+            return ""
     except subprocess.CalledProcessError as e:
         raise YabaiError(f"Yabai command failed: {e.stderr}") from e
 
@@ -157,7 +156,7 @@ class Window:
     def __call__(self, window: Optional[WindowSelector] = None):
         return Window(self._parent, window)
 
-    def _call_window(self, command: List[str]) -> Optional[Dict[str, Any]]:
+    def _call_window(self, command: List[str]):
         full_command = ["-m", "window"]
         if self._window and self._window != 'focused':
             full_command.append(str(self._window))
@@ -173,13 +172,31 @@ class Window:
     def stack(self, target_window: Optional[WindowSelector] = None):
         return self._call_window(["--stack", str(target_window)])
 
+    def insert(self, direction: InsertDirection):
+        """Set the splitting mode of the selected window."""
+        return self._call_window(["--insert", direction.value])
+    
+    def ratio(self, ratio: float):
+        """Set the split ratio for the window."""
+        return self._call_window(["--ratio", str(ratio)])
+
+    def toggle(self, option: str):
+        return self._call_window(["--toggle", option])
+    
+    def warp(self, target_window: WindowSelector, insert_direction: Optional[InsertDirection] = None):
+        """Warp the window to the specified location."""
+        if insert_direction:
+            # Set insert direction on the target window
+            self._parent.window(target_window).insert(insert_direction)
+        return self._call_window(["--warp", str(target_window)])
+
 class Yabai:
     def __init__(self):
         self.query = Query(self)
         self.space = Space(self)
         self.window = Window(self)
 
-    def call(self, args: List[str]) -> Optional[Any]:
+    def call(self, args: List[str]) -> Any:
         return call(args)
 
 yabai = Yabai()

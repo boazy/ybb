@@ -1,23 +1,19 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional, Union, Dict, Any
-from enum import Enum
 import json
 
 from rich.text import Text
 from rich.tree import Tree as RichTree
-from ybb.data_types import Frame, Window as RawWindow
+from ybb.data_types import Frame, Window as RawWindow, SplitType, CardinalDirection
 from ybb.console import get_console
-
-class SplitType(Enum):
-    VERTICAL = "vertical"
-    HORIZONTAL = "horizontal"
 
 @dataclass(frozen=True)
 class FindResult:
     window: Window
     ancestors: List[Split]
     is_first_child: bool
+    parent_stack: Optional[Stack] = None
 
 @dataclass(frozen=True)
 class Window:
@@ -74,7 +70,7 @@ class Stack:
     def _find_window(self, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[FindResult]:
         for window in self.windows:
             if window.id == window_id:
-                return FindResult(window, ancestors, is_first_child)
+                return FindResult(window, ancestors, is_first_child, parent_stack=self)
         return None
 
 @dataclass(frozen=True)
@@ -99,11 +95,11 @@ class Split:
         return self._find_window(window_id, [], False)
 
     def _find_window(self, window_id: int, ancestors: List['Split'], is_first_child: bool) -> Optional[FindResult]:
-        new_ancestors = ancestors + [self]
-        result = self.first_child._find_window(window_id, new_ancestors, True)
+        ancestors.append(self)
+        result = self.first_child._find_window(window_id, ancestors, True)
         if result:
             return result
-        result = self.second_child._find_window(window_id, new_ancestors, False)
+        result = self.second_child._find_window(window_id, ancestors, False)
         if result:
             return result
         return None
@@ -236,32 +232,33 @@ def _format_node_label(node: Node, use_nerd_font: bool) -> str:
         return f"{icon}"
 
 
-def _format_tree_recursive(node: Node, use_nerd_font: bool, prefix: str = "", is_last: bool = True) -> list[str]:
-    # If the node is a stack with a single window, just format the window directly.
-    if isinstance(node, Stack) and len(node.windows) == 1:
-        return _format_tree_recursive(node.windows[0], use_nerd_font, prefix, is_last)
-
-    lines = []
-    connector = "└── " if is_last else "├── "
-    lines.append(f"{prefix}{connector}{_format_node_label(node, use_nerd_font)}")
-
-    new_prefix = prefix + ("    " if is_last else "│   ")
-
-    children_to_render = []
-    if isinstance(node, Split):
-        children_to_render = [node.first_child, node.second_child]
-    elif isinstance(node, Stack):
-        children_to_render = node.windows
-
-    for i, child in enumerate(children_to_render):
-        is_child_last = (i == len(children_to_render) - 1)
-        lines.extend(_format_tree_recursive(child, use_nerd_font, new_prefix, is_child_last))
-
-    return lines
-
-
 def format_tree(tree: Node, use_nerd_font: bool = False) -> str:
     """Formats the reconstructed tree into a human-readable string."""
+
+    def _recurse(node: Node, prefix: str = "", is_last: bool = True) -> list[str]:
+        # If the node is a stack with a single window, just format the window directly.
+        if isinstance(node, Stack) and len(node.windows) == 1:
+            return _recurse(node.windows[0], prefix, is_last)
+
+        lines = []
+        connector = "└── " if is_last else "├── "
+        lines.append(f"{prefix}{connector}{_format_node_label(node, use_nerd_font)}")
+
+        new_prefix = prefix + ("    " if is_last else "│   ")
+
+        children_to_render = []
+        if isinstance(node, Split):
+            children_to_render = [node.first_child, node.second_child]
+        elif isinstance(node, Stack):
+            children_to_render = node.windows
+
+        for i, child in enumerate(children_to_render):
+            is_child_last = (i == len(children_to_render) - 1)
+            lines.extend(_recurse(child, new_prefix, is_child_last))
+
+        return lines
+
+
     # If the root is a stack with a single window, unwrap it.
     if isinstance(tree, Stack) and len(tree.windows) == 1:
         tree = tree.windows[0]
@@ -275,66 +272,64 @@ def format_tree(tree: Node, use_nerd_font: bool = False) -> str:
          children_to_render = tree.windows
 
     for i, child in enumerate(children_to_render):
-        is_child_last = (i == len(children_to_render) - 1)
-        lines.extend(_format_tree_recursive(child, use_nerd_font, "", is_child_last))
+        is_last_child = (i == len(children_to_render) - 1)
+        lines.extend(_recurse(child, "", is_last_child))
 
     return "\n".join(lines)
 
 
 def _create_rich_node_label(node: Node, use_nerd_font: bool) -> Text:
     """Create a Rich Text object with colors for a node."""
-    if isinstance(node, Window):
-        text = Text()
-        if use_nerd_font:
-            text.append(f"{NERD_FONT_ICONS['window']} ", style="bright_blue")
-        text.append(f"{node.app}", style="bright_green bold")
-        text.append(": ", style="dim")
-        text.append(f"{node.title}", style="white")
-        text.append(f" ({node.id})", style="bright_black")
-        return text
-    elif isinstance(node, Stack):
-        text = Text()
-        if use_nerd_font:
-            text.append(f"{NERD_FONT_ICONS['stack']} ", style="bright_yellow")
-        else:
-            text.append("stack ", style="bright_yellow")
-        text.append(f"({len(node.windows)} windows)", style="bright_magenta")
-        return text
-    elif isinstance(node, Split):
-        text = Text()
-        if use_nerd_font:
-            icon = NERD_FONT_ICONS[node.split_type]
-            style = "bright_cyan" if node.split_type == SplitType.VERTICAL else "bright_red"
-            text.append(f"{icon}", style=style)
-        else:
-            style = "bright_cyan" if node.split_type == SplitType.VERTICAL else "bright_red"
-            text.append(node.split_type.value, style=style)
-        return text
-    else:
-        return Text("unknown", style="red")
-
-
-def _build_rich_tree_recursive(node: Node, use_nerd_font: bool, rich_tree: RichTree) -> None:
-    """Recursively build a Rich tree structure."""
-    # If the node is a stack with a single window, just add the window directly.
-    if isinstance(node, Stack) and len(node.windows) == 1:
-        _build_rich_tree_recursive(node.windows[0], use_nerd_font, rich_tree)
-        return
-    
-    children_to_render = []
-    if isinstance(node, Split):
-        children_to_render = [node.first_child, node.second_child]
-    elif isinstance(node, Stack):
-        children_to_render = node.windows
-    
-    for child in children_to_render:
-        child_label = _create_rich_node_label(child, use_nerd_font)
-        child_tree = rich_tree.add(child_label)
-        _build_rich_tree_recursive(child, use_nerd_font, child_tree)
-
+    match node:
+        case Window(app=app, title=title, id=id):
+            text = Text()
+            if use_nerd_font:
+                text.append(f"{NERD_FONT_ICONS['window']} ", style="bright_blue")
+            text.append(f"{app}", style="bright_green bold")
+            text.append(": ", style="dim")
+            text.append(f"{title}", style="white")
+            text.append(f" ({id})", style="bright_black")
+            return text
+        case Stack(windows=windows):
+            text = Text()
+            if use_nerd_font:
+                text.append(f"{NERD_FONT_ICONS['stack']} ", style="bright_yellow")
+            text.append(f"({len(windows)} windows)", style="bright_magenta")
+            return text
+        case Split(split_type=split_type):
+            text = Text()
+            if use_nerd_font:
+                icon = NERD_FONT_ICONS[split_type]
+                style = "bright_cyan" if split_type == SplitType.VERTICAL else "bright_red"
+                text.append(f"{icon}", style=style)
+            else:
+                text.append(split_type.value, style="bright_cyan" if split_type == SplitType.VERTICAL else "bright_red")
+            return text
+        case _:
+            return Text("unknown", style="red")
 
 def format_rich_tree(tree: Node, use_nerd_font: bool = False) -> str:
     """Formats the reconstructed tree into a Rich-colored string."""
+
+    def _render_child(node: Node, tree: RichTree) -> RichTree:
+        label = _create_rich_node_label(node, use_nerd_font)
+        return tree.add(label)
+
+    def _recurse(node: Node, tree: RichTree) -> None:
+        """Recursively build a Rich tree structure."""
+        children_to_render = []
+        if isinstance(node, Split):
+            children_to_render = [node.first_child, node.second_child]
+        elif isinstance(node, Stack):
+            children_to_render = node.windows
+        
+        for child in children_to_render:
+            if isinstance(child, Stack) and len(child.windows) == 1:
+                # If the child node is a stack with a single window, just render the window directly.
+                _render_child(child.windows[0], tree)
+            else:
+                _recurse(child, _render_child(child, tree)) # type: ignore
+
     console = get_console()
     
     # If the root is a stack with a single window, unwrap it.
@@ -353,7 +348,7 @@ def format_rich_tree(tree: Node, use_nerd_font: bool = False) -> str:
     for child in children_to_render:
         child_label = _create_rich_node_label(child, use_nerd_font)
         child_tree = rich_tree.add(child_label)
-        _build_rich_tree_recursive(child, use_nerd_font, child_tree)
+        _recurse(child, child_tree)
     
     # Capture the Rich output as a string
     with console.capture() as capture:

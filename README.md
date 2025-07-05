@@ -55,14 +55,16 @@ Reconstructs and displays the BSP tree structure of a space.
 # Display BSP tree as JSON (default)
 ybb space tree
 
-# Display as a formatted tree with colors
-ybb space tree --output-format tree
+# Display as a formatted tree with colors (pretty-print)
+ybb space tree --pretty-print
+ybb space tree -p
 
 # Use Nerd Font icons for better visualization
-ybb space tree --output-format tree --nerd-font
+ybb space tree -p --nerd-font
+ybb space tree -p -N
 
 # Target a specific space
-ybb space tree --space 2
+ybb space tree --space 2 -p
 ```
 
 **Example tree output:**
@@ -79,7 +81,7 @@ ybb space tree --space 2
 
 #### `ybb window layout stack`
 
-Converts window siblings into a stack based on their split orientation.
+Converts window siblings into a stack based on their split orientation, or toggles between stacked and unstacked layouts.
 
 ```bash
 # Stack siblings of the focused window
@@ -87,7 +89,17 @@ ybb window layout stack
 
 # Stack siblings of a specific window
 ybb window layout stack --window 1234
+
+# Toggle between stacked and unstacked layout
+ybb window layout stack --toggle
+
+# Toggle for a specific window
+ybb window layout stack --window 1234 --toggle
 ```
+
+**Toggle Behavior:**
+- If the window is part of a stack → unrolls the stack into balanced splits in the opposite direction
+- If the window is not in a stack → stacks it with its siblings as normal
 
 #### `ybb window resize`
 
@@ -113,10 +125,13 @@ ybb --verbose window resize 25
 
 ```bash
 # Quick tree visualization
-ybb space tree -o tree -N
+ybb space tree -p -N
 
 # Stack windows with verbose logging
 ybb --verbose window layout stack
+
+# Toggle stack/unstack with verbose output
+ybb --verbose window layout stack --toggle
 
 # Resize with colors always on (useful for scripts)
 ybb --color always window resize 50
@@ -126,7 +141,7 @@ ybb --color always window resize 50
 
 ```bash
 # Debug a complex layout
-ybb --verbose space tree --output-format tree --nerd-font
+ybb --verbose space tree -p -N
 
 # Batch operations with color disabled
 ybb --color off window layout stack
@@ -159,13 +174,18 @@ Window resizing is context-aware:
 - **Horizontal splits**: Adjusts top/bottom edges based on window position
 - **Child position**: Determines which edge to move for intuitive behavior
 
-### Stack Detection
+### Stack Detection and Toggle
 
 The stacking algorithm:
 
 - Traverses the BSP tree to find split siblings
 - Groups windows by their split orientation
 - Executes yabai stack commands to create window stacks
+
+**Toggle Mode:**
+- Detects if a window is currently in a stack
+- If stacked: Unrolls the stack into balanced splits in the opposite direction of the parent split
+- If not stacked: Performs normal stacking operation
 
 ## Configuration
 
@@ -199,6 +219,7 @@ pytest tests/
 
 # Test specific functionality
 python -m ybb space tree
+python -m ybb space tree -p
 python -m ybb window layout stack
 python -m ybb window resize 50
 ```
