@@ -4,10 +4,11 @@ import logging
 from enum import Enum
 from rich.logging import RichHandler
 from .yabai import yabai, YabaiError
-from .tree import reconstruct_tree, TreeEncoder, format_rich_tree
+from .tree import reconstruct_tree, TreeEncoder, print_rich_tree
 from .commands.stack import stack_command
 from .commands.resize import resize_command
-from .console import ColorMode, initialize_console
+from .console import ColorMode
+from . import console
 
 class OutputFormat(str, Enum):
     json = "json"
@@ -27,7 +28,7 @@ def main(
 ):
     """YBB - A CLI tool for managing yabai windows and spaces."""
     # Initialize console with color mode
-    initialize_console(color)
+    console.initialize(color)
     
     # Configure logging based on verbose flag
     level = logging.WARNING
@@ -35,15 +36,13 @@ def main(
         level = logging.DEBUG
     
     # Use the dedicated error console that respects color mode
-    from .console import get_error_console
-    error_console = get_error_console()
     
     logging.basicConfig(
         level=level,
         format="%(message)s",
         handlers=[
             RichHandler(
-                console=error_console,
+                console=console.get().error,
                 show_time=False,
                 show_level=False,
                 show_path=False,
@@ -88,11 +87,10 @@ def tree(
             logging.error(f"[red]Error:[/red] Space '{space}' is not a bsp space.")
             raise typer.Exit(code=1)
 
-        if not windows:
-            print("No windows found in space.")
-            return
-
-        tree_structure = reconstruct_tree(windows)
+        if windows:
+            tree_structure = reconstruct_tree(windows)
+        else:
+            tree_structure = None
 
         if pretty_print:
             output_format = OutputFormat.tree
@@ -100,9 +98,12 @@ def tree(
         if output_format == OutputFormat.json:
             print(json.dumps(tree_structure, indent=2, cls=TreeEncoder))
         elif output_format == OutputFormat.tree:
+            if not tree_structure:
+                logging.warning(f"[red]Error:[/red] No windows found in space '{space}'.")
+                return
+
             # Rich automatically handles color detection and falls back to plain text
-            output = format_rich_tree(tree_structure, use_nerd_font=nerd_font)
-            print(output, end='')  # Rich output already includes newlines
+            print_rich_tree(tree_structure, use_nerd_font=nerd_font)
 
     except YabaiError as e:
         logging.error(f"[red] Error:[/red] {e}")

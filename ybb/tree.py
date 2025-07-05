@@ -5,9 +5,8 @@ import json
 
 from rich.text import Text
 from rich.tree import Tree as RichTree
-from ybb.data_types import Frame, Window as RawWindow, SplitType, CardinalDirection
-from ybb.console import get_console
-
+from ybb.data_types import Frame, Window as RawWindow, SplitType
+from ybb import console
 @dataclass(frozen=True)
 class FindResult:
     window: Window
@@ -308,7 +307,7 @@ def _create_rich_node_label(node: Node, use_nerd_font: bool) -> Text:
         case _:
             return Text("unknown", style="red")
 
-def format_rich_tree(tree: Node, use_nerd_font: bool = False) -> str:
+def print_rich_tree(tree: Node, use_nerd_font: bool = False) -> None:
     """Formats the reconstructed tree into a Rich-colored string."""
 
     def _render_child(node: Node, tree: RichTree) -> RichTree:
@@ -330,8 +329,6 @@ def format_rich_tree(tree: Node, use_nerd_font: bool = False) -> str:
             else:
                 _recurse(child, _render_child(child, tree)) # type: ignore
 
-    console = get_console()
-    
     # If the root is a stack with a single window, unwrap it.
     if isinstance(tree, Stack) and len(tree.windows) == 1:
         tree = tree.windows[0]
@@ -351,10 +348,7 @@ def format_rich_tree(tree: Node, use_nerd_font: bool = False) -> str:
         _recurse(child, child_tree)
     
     # Capture the Rich output as a string
-    with console.capture() as capture:
-        console.print(rich_tree)
-    
-    return capture.get()
+    console.get().main.print(rich_tree)
 
 
 Node = Union[Window, Stack, Split]

@@ -1,9 +1,9 @@
 from __future__ import annotations
 import subprocess
 import logging
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
-from ybb.data_types import CardinalDirection, InsertDirection, Space as RawSpace, Window as RawWindow
+from ybb.data_types import InsertDirection, Space as RawSpace, Window as RawWindow
 
 logger = logging.getLogger('yabai')
 
@@ -176,9 +176,9 @@ class Window:
         """Set the splitting mode of the selected window."""
         return self._call_window(["--insert", direction.value])
     
-    def ratio(self, ratio: float):
+    def ratio(self, type: Literal["abs", "rel"], ratio: float):
         """Set the split ratio for the window."""
-        return self._call_window(["--ratio", str(ratio)])
+        return self._call_window(["--ratio", f"{type}:{ratio}"])
 
     def toggle(self, option: str):
         return self._call_window(["--toggle", option])

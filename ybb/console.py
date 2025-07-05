@@ -8,10 +8,6 @@ class ColorMode(str, Enum):
     auto = "auto"
     off = "off"
 
-# Global console instances
-_console: Console | None = None
-_error_console: Console | None = None
-
 @dataclass(frozen=True)
 class Consoles:
     main: Console
@@ -33,29 +29,21 @@ class Consoles:
             error=cls._create_console(color_mode, stderr=True)
         )
 
-    def _register_globals(self) -> None:
-        global _console, _error_console
-        _console = self.main
-        _error_console = self.error
+# Global console instances
+_consoles: Consoles | None = None
 
-def initialize_console(color_mode: ColorMode) -> Consoles:
+def initialize(color_mode: ColorMode) -> Consoles:
     """Initialize the global console instances based on color mode."""
-    global _console, _error_console
-
+    global _consoles
     consoles = Consoles.create(color_mode)
-    consoles._register_globals()
+    _consoles = consoles
     return consoles
 
-def get_console() -> Console:
-    """Get the global console instance."""
-    if _console is None:
+def get() -> Consoles:
+    """Get the console instances."""
+    global _consoles
+    if _consoles:
+        return _consoles
+    else:
         # Default to auto mode if not initialized
-        return initialize_console(ColorMode.auto).main
-    return _console
-
-def get_error_console() -> Console:
-    """Get the global error console instance."""
-    if _error_console is None:
-        # Default to auto mode if not initialized
-        return initialize_console(ColorMode.auto).error
-    return _error_console
+        return initialize(ColorMode.auto)

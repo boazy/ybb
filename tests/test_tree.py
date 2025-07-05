@@ -1,4 +1,4 @@
-from ybb.tree import Window, Stack, Split, FindResult
+from ybb.tree import Window, Stack, Split
 from ybb.data_types import SplitType, Frame
 
 def test_find_window_in_window():

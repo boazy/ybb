@@ -3,7 +3,7 @@ import logging
 from typing import List
 from ..yabai import yabai, YabaiError
 from ..tree import FindResult
-from ..data_types import SplitType
+from ..data_types import AdditionalInsertDirection, SplitType
 from ..tree import reconstruct_tree, Split, Window, Stack, Node
 
 def _get_all_windows_in_node(node: Node) -> List[int]:
@@ -27,17 +27,19 @@ def _handle_toggle_operation(found_node: FindResult):
     """
 
     # Check if our window is in a stack
-    if found_node.parent_stack:
+    if found_node.parent_stack and len(found_node.parent_stack.windows) > 1:
         # Determine the split type of the parent split
         if len(found_node.ancestors) == 0:
             # Root stack, assume horizontal split
             target_split_type = SplitType.HORIZONTAL
         else:
             target_split_type = found_node.ancestors[-1].split_type
-        _unroll_stack(found_node.parent_stack, target_split_type)
 
-    # Unroll the stack
-    _stack_recursive_splits(found_node)
+        # Unroll the stack
+        _unroll_stack(found_node.parent_stack, target_split_type)
+    else:
+        # Stack together with all window in direct descendent and ancestor tree with the same split type
+        _stack_recursive_splits(found_node)
 
 def _contains_window(node: Node, window_id: int) -> bool:
     """Check if a node contains a specific window."""
@@ -50,7 +52,7 @@ def _contains_window(node: Node, window_id: int) -> bool:
             return (_contains_window(node.first_child, window_id) if node.first_child else False) or \
                 (_contains_window(node.second_child, window_id) if node.second_child else False)
         case _:
-            assert_never("Invalid node type")
+            raise ValueError(f"Invalid node type: {type(node)}")
 
 def _unroll_stack(stack: Stack, parent_split_type: SplitType):
     """
@@ -60,15 +62,9 @@ def _unroll_stack(stack: Stack, parent_split_type: SplitType):
     if len(stack.windows) <= 1:
         return
     
-    # Map SplitType to yabai direction strings
-    direction_map = {
-        SplitType.VERTICAL: "south",    # opposite of vertical is horizontal (south)
-        SplitType.HORIZONTAL: "east"    # opposite of horizontal is vertical (east)
-    }
-    
-    # Determine the opposite split direction
+    # Determine the start direction and the append direction
     start_direction = parent_split_type.start_direction()
-    opposite_direction = start_direction.opposite()
+    append_direction = start_direction.opposite()
     
     # Get all window IDs in the stack
     window_ids = [w.id for w in stack.windows]
@@ -87,15 +83,19 @@ def _unroll_stack(stack: Stack, parent_split_type: SplitType):
     yabai.window(base_window_id).toggle("float")
     yabai.window(base_window_id).warp(window_ids[1], insert_direction=start_direction)
 
+    previous_window_id = base_window_id
+
     for i in range(1, len(window_ids)):
         window_to_move = window_ids[i]
         
-        # Now warp the stacked window to split the base window
-        yabai.window(window_to_move).warp(base_window_id, insert_direction=opposite_direction)
+        # Now warp the stacked window to split the previous window
+        yabai.window(window_to_move).warp(previous_window_id, insert_direction=append_direction)
         
         # Balance the ratios to make splits equal
-        ratio = 1.0 / (i + 1)
-        yabai.window(base_window_id).ratio(ratio)
+        # ratio = 1.0 / (i + 1)
+        #yabai.window(previous_window_id).ratio(ratio)
+
+        previous_window_id = window_to_move
 
 def _stack_recursive_splits(found_node: FindResult):
     """
@@ -119,7 +119,18 @@ def _stack_recursive_splits(found_node: FindResult):
         else:
             break
 
+    windows_to_stack = []
+
     def _traverse(current_node: Node):
+        if isinstance(current_node, Window):
+            windows_to_stack.append(current_node.id)
+            return
+
+        if isinstance(current_node, Stack):
+            for window in current_node.windows:
+                windows_to_stack.append(window.id)
+            return
+        
         if not isinstance(current_node, Split) or current_node.split_type != target_split_type:
             return
 
@@ -127,28 +138,14 @@ def _stack_recursive_splits(found_node: FindResult):
         _traverse(current_node.first_child)
         _traverse(current_node.second_child)
 
-        # Now, on the way up, perform stacking if the split type matches
-        if current_node.split_type != target_split_type:
-            return 
-
-        # Stack the first child into the second child
-        # This assumes first_child and second_child are windows or stacks
-        # If they are splits, we need to get their contained windows/stacks
-        windows_from_first_child = _get_all_windows_in_node(current_node.first_child)
-
-        target_window_id = None
-        if current_node.second_child:
-            all_windows_in_second_child = _get_all_windows_in_node(current_node.second_child)
-            if all_windows_in_second_child:
-                target_window_id = all_windows_in_second_child[0] # Stack into the first window found
-
-        if target_window_id and windows_from_first_child:
-            for win_id in windows_from_first_child:
-                if win_id != target_window_id: # Don't stack a window onto itself
-                    yabai.window(target_window_id).stack(win_id)
-    
     _traverse(start_node)
 
+    if len(windows_to_stack) > 1:
+        target_window_id = windows_to_stack[0]
+        for current_id in windows_to_stack[1:]:
+            yabai.window(current_id).warp(target_window_id, insert_direction=AdditionalInsertDirection.STACK)
+            target_window_id = current_id
+    
 def stack_command(
     window: str = typer.Option("focused", "--window", "-w", help="Window to stack."),
     toggle: bool = typer.Option(False, "--toggle", help="Toggle between stacking and unstacking.")

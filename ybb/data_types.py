@@ -45,10 +45,10 @@ class CardinalDirection(Enum):
             case CardinalDirection.WEST:
                 return CardinalDirection.EAST
 
-class AdditionInsertDirections(Enum):
+class AdditionalInsertDirection(Enum):
     STACK = "stack"
 
-InsertDirection = CardinalDirection | AdditionInsertDirections
+InsertDirection = CardinalDirection | AdditionalInsertDirection
 
 @dataclass(frozen=True)
 class Frame(DataClassJsonMixin):
