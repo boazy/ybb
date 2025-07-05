@@ -25,7 +25,8 @@ ybb/
 ├── data_types.py          # Data structures for yabai objects
 └── commands/
     ├── stack.py           # Window stacking functionality
-    └── resize.py          # Smart window resizing
+    ├── resize.py          # Smart window resizing
+    └── close.py           # Window closing functionality
 ```
 
 ## Current Implementation Status
@@ -59,13 +60,19 @@ ybb/
    - Dynamic resize amount calculation
    - Full yabai integration
 
-5. **Tree Management System**
+5. **Window Close** (`ybb window close`)
+   - Simple window closing functionality
+   - Bulk close with --except option to close all other windows in the same space
+   - Proper error handling for failed close operations
+   - Full yabai integration
+
+6. **Tree Management System**
    - Complete BSP tree data structures (Window, Stack, Split)
    - Tree traversal and window finding algorithms
    - Proper handling of vertical/horizontal splits
    - Stack detection and visualization
 
-6. **Rich Console Integration**
+7. **Rich Console Integration**
    - Colored output with automatic terminal detection
    - Truecolor support for enhanced visuals
    - Verbose logging with Rich formatting
@@ -88,6 +95,7 @@ All commands support these global options:
 - `ybb space tree [-s SPACE] [-o FORMAT] [-p] [-N]`: Reconstruct and display BSP tree
 - `ybb window layout stack [-w WINDOW] [--toggle]`: Stack window siblings or toggle stack/unstack
 - `ybb window resize INCREMENT [-w WINDOW]`: Smart window resize
+- `ybb window close [-w WINDOW] [--except]`: Close window or all other windows in the same space
 
 ### Command Architecture
 
@@ -149,14 +157,46 @@ ybb --verbose window resize 100 -w 1234
 
 # Disable colors entirely
 ybb --color off space tree
+
+# Close the focused window
+ybb window close
+
+# Close a specific window by ID
+ybb window close -w 1234
+
+# Close all windows in the same space except the focused window
+ybb window close --except
+
+# Close all windows in the same space except a specific window
+ybb window close -w 1234 --except
 ```
 
 ## Test Commands
 
-- `pytest tests/` - Run test suite
+- `mise test` - Run test suite
 - `python -m ybb space tree` - Display BSP tree (JSON format)
 - `python -m ybb space tree -p` - Display BSP tree in pretty-print format
 - `python -m ybb window layout stack` - Stack window siblings
 - `python -m ybb window layout stack --toggle` - Toggle stack/unstack
 - `python -m ybb window resize 50` - Resize focused window
 - `python -m ybb window resize -- -50` - Shrink focused window
+- `python -m ybb window close` - Close focused window
+- `python -m ybb window close --except` - Close all other windows in the same space
+
+## Lint and Unit Tests
+
+Lint and testing is managed as mise tasks.
+
+### Lint
+
+Lint is using ruff.
+
+- To run lints (check only) you should use `mise lint`.
+- To auto fix lint issues you should use `mise lint:fix`.
+
+### Tests
+
+Tests are done using pytest
+
+- To run tests, you should use `mise test`.
+

@@ -8,6 +8,7 @@ from .tree import reconstruct_tree, TreeEncoder, print_rich_tree
 from .commands.stack import stack_command
 from .commands.resize import resize_command
 from .commands.switch_split import switch_split_command
+from .commands.close import close_command
 from .console import ColorMode
 from . import console
 
@@ -122,6 +123,13 @@ def _resize(
     window: str = typer.Option("focused", "--window", "-w", help="Window to resize.", metavar="WINDOW_SEL")
 ):
     resize_command(increment, window)
+
+@window_app.command(name="close")
+def _close(
+    window: str = typer.Option("focused", "--window", "-w", help="Window to close.", metavar="WINDOW_SEL"),
+    except_mode: bool = typer.Option(False, "--except", "-e", help="Close all other windows in the same space except the specified window.")
+):
+    close_command(window, except_mode)
 
 if __name__ == "__main__":
     app()

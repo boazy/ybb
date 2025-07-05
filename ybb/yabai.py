@@ -190,6 +190,10 @@ class Window:
             self._parent.window(target_window).insert(insert_direction)
         return self._call_window(["--warp", str(target_window)])
 
+    def close(self):
+        """Close the window."""
+        return self._call_window(["--close"])
+
 class Yabai:
     def __init__(self):
         self.query = Query(self)

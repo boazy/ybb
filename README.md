@@ -9,6 +9,7 @@ high-level commands for managing windows and spaces in a BSP (Binary Space Parti
 - 📚 **Smart Window Stacking** - Automatically stack window siblings based on split orientation
 - 🔄 **Split Direction Switching** - Switch the split direction of consecutive window siblings
 - 🎯 **Intelligent Window Resizing** - Context-aware resizing that understands your BSP layout
+- 🗑️ **Window Closing** - Close windows individually or close all other windows in a space
 - 🎨 **Rich Console Output** - Beautiful colored output with automatic terminal detection
 - 🔧 **Flexible Configuration** - Global options for verbosity and color control
 - ⚡ **Fast and Lightweight** - Built with Python 3.13+ and modern tooling
@@ -143,6 +144,33 @@ ybb window resize 100 --window 1234
 ybb --verbose window resize 25
 ```
 
+#### `ybb window close`
+
+Closes windows individually or closes all other windows in the same space except the specified one.
+
+```bash
+# Close the focused window
+ybb window close
+
+# Close a specific window by ID
+ybb window close --window 1234
+
+# Close all other windows in the same space except the focused window
+ybb window close --except
+
+# Close all other windows in the same space except a specific window
+ybb window close --window 1234 --except
+
+# Close with verbose output to see the operation
+ybb --verbose window close --except
+```
+
+**Exception Mode (`--except`):**
+- Closes all windows in the same space as the target window
+- Keeps the specified window open
+- Useful for quickly decluttering a space while preserving your primary window
+- Provides warnings if individual window close operations fail
+
 ## Examples
 
 ### Basic Usage
@@ -162,6 +190,9 @@ ybb --verbose window layout switch-split
 
 # Resize with colors always on (useful for scripts)
 ybb --color always window resize 50
+
+# Close all other windows except the focused one
+ybb window close --except
 ```
 
 ### Advanced Workflows
@@ -251,6 +282,8 @@ python -m ybb space tree -p
 python -m ybb window layout stack
 python -m ybb window layout switch-split
 python -m ybb window resize 50
+python -m ybb window close
+python -m ybb window close --except
 ```
 
 ### Project Structure
@@ -267,7 +300,8 @@ ybb/
 └── commands/
     ├── stack.py         # Window stacking functionality
     ├── switch_split.py  # Split direction switching
-    └── resize.py        # Smart window resizing
+    ├── resize.py        # Smart window resizing
+    └── close.py         # Window closing functionality
 ```
 
 ## Requirements

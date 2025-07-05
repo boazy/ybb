@@ -7,9 +7,10 @@ uv = "latest"
 python.uv_venv_auto = true
 
 [tasks]
-"ruff:check" = "ruff check ."
-test = "PYTHONPATH=. pytest"
+lint = "ruff check ."
+"lint:fix" = "ruff check --fix ."
+test = "PYTHONPATH=. pytest tests/"
 ybb = "python -m ybb"
 
 [tasks.check]
-depends = ["ruff:check", "test"]
+depends = ["lint", "test"]
