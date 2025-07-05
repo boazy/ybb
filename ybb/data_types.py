@@ -17,16 +17,16 @@ class SplitType(Enum):
     def start_direction(self) -> 'CardinalDirection':
         match self:
             case SplitType.VERTICAL:
-                return CardinalDirection.NORTH
-            case SplitType.HORIZONTAL:
                 return CardinalDirection.WEST
+            case SplitType.HORIZONTAL:
+                return CardinalDirection.NORTH
     
     def end_direction(self) -> 'CardinalDirection':
         match self:
             case SplitType.VERTICAL:
-                return CardinalDirection.SOUTH
-            case SplitType.HORIZONTAL:
                 return CardinalDirection.EAST
+            case SplitType.HORIZONTAL:
+                return CardinalDirection.SOUTH
 
 class CardinalDirection(Enum):
     NORTH = "north"

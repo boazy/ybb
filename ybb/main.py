@@ -7,6 +7,7 @@ from .yabai import WindowSelector, yabai, YabaiError
 from .tree import reconstruct_tree, TreeEncoder, print_rich_tree
 from .commands.stack import stack_command
 from .commands.resize import resize_command
+from .commands.switch_split import switch_split_command
 from .console import ColorMode
 from . import console
 
@@ -62,6 +63,12 @@ def _stack(
     toggle: bool = typer.Option(False, "--toggle", help="Toggle between stacking and unstacking.")
 ):
     stack_command(window, toggle)
+
+@layout_app.command(name="switch-split")
+def _switch_split(
+    window: str = typer.Option("focused", "--window", "-w", help="Window to switch split direction for.", metavar="WINDOW_SEL")
+):
+    switch_split_command(window)
 
 @space_app.command()
 def tree(

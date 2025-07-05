@@ -63,7 +63,8 @@ def _unroll_stack(stack: Stack, parent_split_type: SplitType):
         return
     
     # Determine the start direction and the append direction
-    start_direction = parent_split_type.start_direction()
+    # We want to create a split that is following the opposite axis of the parent split
+    start_direction = parent_split_type.opposite().start_direction()
     append_direction = start_direction.opposite()
     
     # Get all window IDs in the stack
