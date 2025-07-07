@@ -8,7 +8,7 @@ from .. import console as ybb_console
 
 
 # Column width constants
-SPACE_WIDTH = 12
+SPACE_WIDTH = 6
 DISPLAY_WIDTH = 5
 ID_WIDTH = 8
 LAYER_WIDTH = 8
@@ -60,16 +60,16 @@ def _calculate_column_widths(windows: List[Window], terminal_width: int,
     # Calculate fixed column widths
     fixed_width = 0
     
-    # ID column
-    fixed_width += ID_WIDTH
+    # Display column
+    if show_display:
+        fixed_width += DISPLAY_WIDTH
     
     # Space column
     if show_space:
         fixed_width += SPACE_WIDTH
     
-    # Display column
-    if show_display:
-        fixed_width += DISPLAY_WIDTH
+    # ID column
+    fixed_width += ID_WIDTH
     
     # Layer column
     fixed_width += LAYER_WIDTH
@@ -108,16 +108,6 @@ def _calculate_column_widths(windows: List[Window], terminal_width: int,
     
     return app_width, title_width
 
-
-def _truncate_text(text: str, max_width: int) -> str:
-    """Truncate text with ellipsis if it exceeds max_width."""
-    if len(text) <= max_width:
-        return text
-    if max_width <= 1:
-        return text[:max_width]
-    return text[:max_width - 1] + '…'
-
-
 def table_command(display: Optional[DisplaySelector] = None, space: Optional[str] = None):
     """Create a table layout of windows."""
     try:
@@ -127,7 +117,7 @@ def table_command(display: Optional[DisplaySelector] = None, space: Optional[str
         
         # Determine filtering and column visibility
         show_space = space is None
-        show_display = display is None
+        show_display = (display is None) and show_space
         
         # Query windows based on filters
         if space is not None:
@@ -141,12 +131,6 @@ def table_command(display: Optional[DisplaySelector] = None, space: Optional[str
             logging.warning("No windows found.")
             return
         
-        # Get spaces for space index mapping if needed
-        spaces_by_id = {}
-        if show_space:
-            spaces = yabai.query.spaces()
-            spaces_by_id = {s.id: s for s in spaces}
-        
         # Calculate column widths
         app_width, title_width = _calculate_column_widths(
             windows, terminal_width, show_space, show_display
@@ -156,39 +140,43 @@ def table_command(display: Optional[DisplaySelector] = None, space: Optional[str
         table = Table(show_header=True, header_style="bold blue")
         
         # Add columns based on visibility
+        if show_display:
+            table.add_column("Disp", width=DISPLAY_WIDTH, justify="left")
         if show_space:
             table.add_column("Space", width=SPACE_WIDTH, justify="left")
-        if show_display:
-            table.add_column("Disp", width=DISPLAY_WIDTH, justify="right")
         
-        table.add_column("Id", width=ID_WIDTH, justify="right")
+        table.add_column("Id", width=ID_WIDTH, justify="left")
         table.add_column("App", width=app_width, no_wrap=True)
         table.add_column("Title", width=max(title_width, 5), no_wrap=True, justify="left")
         table.add_column("Layer", width=LAYER_WIDTH)
         table.add_column("Sublayer", width=SUB_LAYER_WIDTH)
         table.add_column("Flags", width=FLAGS_WIDTH)
+
+        if show_display:
+            windows.sort(key=lambda x: (x.display, x.space, x.id))
+        elif show_space:
+            windows.sort(key=lambda x: (x.space, x.id))
+        else:
+            windows.sort(key=lambda x: x.id)
         
         # Add rows
         for window in windows:
             row = []
             
-            # Space column
-            if show_space:
-                if window.space in spaces_by_id:
-                    space_info = spaces_by_id[window.space]
-                    space_text = f"{space_info.id} ({space_info.index})"
-                else:
-                    space_text = str(window.space)
-                row.append(space_text)
-            
             # Display column
             if show_display:
-                row.append(str(window.display))
+                display_text = str(window.display).rjust(DISPLAY_WIDTH - 1)
+                row.append(display_text)
+            
+            # Space column
+            if show_space:
+                space_text = str(window.space).rjust(SPACE_WIDTH - 1)
+                row.append(space_text)
             
             # Fixed columns
-            row.append(str(window.id))
-            row.append(_truncate_text(window.app, app_width))
-            row.append(_truncate_text(window.title, title_width))
+            row.append(str(window.id).rjust(ID_WIDTH - 2))
+            row.append(window.app)
+            row.append(window.title)
             row.append(window.layer)
             row.append(window.sub_layer)
             row.append(_generate_flags(window))
