@@ -171,6 +171,62 @@ ybb --verbose window close --except
 - Useful for quickly decluttering a space while preserving your primary window
 - Provides warnings if individual window close operations fail
 
+#### `ybb window table`
+
+Creates a comprehensive table layout of windows with detailed information and filtering options.
+
+```bash
+# Display table of all windows
+ybb window table
+
+# Display windows from a specific space (omits Space and Display columns)
+ybb window table --space 1
+ybb window table -s focused
+
+# Display windows from a specific display (omits Display column)
+ybb window table --display 1
+ybb window table -d 2
+
+# Display with verbose output
+ybb --verbose window table
+
+# Display with colors always on
+ybb --color always window table
+```
+
+**Table Columns:**
+- **Space** - Space ID and index in format "ID (INDEX)" (e.g., "27 (5)")
+- **Display** - Display number
+- **Id** - Window ID
+- **App** - Application name (responsive width, minimum 10 characters)
+- **Title** - Window title (responsive width, grows faster than App)
+- **Layer** - Window layer (normal, above, below)
+- **Sub-layer** - Window sub-layer
+- **Flags** - 5-character status flags:
+  - **R** - Root Window
+  - **A** - Active (has focus)
+  - **H/M/V** - Hidden, Minimized, or Visible (by priority)
+  - **N/Z/z** - Native Fullscreen, Full Screen Zoom, or Parent Zoom
+  - **F/S** - Floating or Sticky
+
+**Filtering Options:**
+- `--space` and `--display` are mutually exclusive
+- When filtering by space, Space and Display columns are hidden
+- When filtering by display, only Display column is hidden
+- Column widths automatically adjust to terminal width
+- Long text is truncated with ellipsis (…) when needed
+
+**Example output:**
+```
+┏━━━━━━━━━━━━━┳━━━━┳━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━┓
+┃       Space ┃ D… ┃     Id ┃ App         ┃ Title       ┃ Layer   ┃ Sub-lay… ┃ Fla… ┃
+┡━━━━━━━━━━━━━╇━━━━╇━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━┩
+│       1 (1) ┃  1 ┃  52018 ┃ WhatsApp    ┃ WhatsApp    ┃ normal  ┃ normal   ┃  R   ┃
+│       2 (2) ┃  1 ┃     55 ┃ WezTerm     ┃ [4/4] ✳ YBB ┃ normal  ┃ below    ┃ RAV  ┃
+│       3 (3) ┃  1 ┃     49 ┃ Firefox     ┃ GitHub      ┃ normal  ┃ below    ┃  R   ┃
+└─────────────┴────┴────────┴─────────────┴─────────────┴─────────┴──────────┴──────┘
+```
+
 ## Examples
 
 ### Basic Usage
@@ -178,6 +234,9 @@ ybb --verbose window close --except
 ```bash
 # Quick tree visualization
 ybb space tree -p -N
+
+# Display window table
+ybb window table
 
 # Stack windows with verbose logging
 ybb --verbose window layout stack
@@ -200,6 +259,12 @@ ybb window close --except
 ```bash
 # Debug a complex layout
 ybb --verbose space tree -p -N
+
+# Analyze windows in a specific space
+ybb window table --space 1
+
+# Monitor windows on a specific display
+ybb window table --display 2
 
 # Batch operations with color disabled
 ybb --color off window layout stack
@@ -279,6 +344,8 @@ pytest tests/
 # Test specific functionality
 python -m ybb space tree
 python -m ybb space tree -p
+python -m ybb window table
+python -m ybb window table -s 1
 python -m ybb window layout stack
 python -m ybb window layout switch-split
 python -m ybb window resize 50
@@ -301,7 +368,8 @@ ybb/
     ├── stack.py         # Window stacking functionality
     ├── switch_split.py  # Split direction switching
     ├── resize.py        # Smart window resizing
-    └── close.py         # Window closing functionality
+    ├── close.py         # Window closing functionality
+    └── table.py         # Window table display
 ```
 
 ## Requirements

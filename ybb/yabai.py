@@ -36,6 +36,7 @@ def call(args: List[str]) -> str:
 
 WindowSelector = int | str
 SpaceSelector =  int | str
+DisplaySelector = int | str
 
 class Query:
     def __init__(self, parent: Yabai):
@@ -59,19 +60,20 @@ class Query:
             return RawWindow.from_json(result)
         return None
 
-    def windows(self, window: Optional[WindowSelector] = None, space: Optional[SpaceSelector] = None) -> List[RawWindow]:
+    def windows(self, window: Optional[WindowSelector] = None, space: Optional[SpaceSelector] = None, display: Optional[DisplaySelector] = None) -> List[RawWindow]:
         """
         Queries for windows.
 
         Args:
             window: A window selector. Returns a single window wrapped in a list.
             space: A space selector. Returns a list of windows.
+            display: A display selector. Returns windows on that display.
 
         Returns:
             A list of window dictionaries.
         """
-        if window and space:
-            raise ValueError("Cannot specify both 'window' and 'space' selectors.")
+        if sum(bool(x) for x in [window, space, display]) > 1:
+            raise ValueError("Cannot specify multiple selectors (window, space, display).")
 
         command = ["-m", "query", "--windows"]
         is_single_item = bool(window)
@@ -86,6 +88,8 @@ class Query:
                 command.extend(["--space", str(space)])
             elif space is not None:
                 command.append("--space")
+        elif display:
+            command.extend(["--display", str(display)])
 
         result = self._parent.call(command)
 

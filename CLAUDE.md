@@ -26,7 +26,8 @@ ybb/
 └── commands/
     ├── stack.py           # Window stacking functionality
     ├── resize.py          # Smart window resizing
-    └── close.py           # Window closing functionality
+    ├── close.py           # Window closing functionality
+    └── table.py           # Window table display
 ```
 
 ## Current Implementation Status
@@ -66,13 +67,21 @@ ybb/
    - Proper error handling for failed close operations
    - Full yabai integration
 
-6. **Tree Management System**
+6. **Window Table** (`ybb window table`)
+   - Comprehensive table display of all windows with Rich formatting
+   - Responsive column sizing that adapts to terminal width
+   - Space and display filtering with mutual exclusivity
+   - 5-character flag system showing window status (R/A/H-M-V/N-Z-z/F-S)
+   - Smart column visibility (hides irrelevant columns when filtering)
+   - Enhanced yabai.query.windows() API with display parameter support
+
+7. **Tree Management System**
    - Complete BSP tree data structures (Window, Stack, Split)
    - Tree traversal and window finding algorithms
    - Proper handling of vertical/horizontal splits
    - Stack detection and visualization
 
-7. **Rich Console Integration**
+8. **Rich Console Integration**
    - Colored output with automatic terminal detection
    - Truecolor support for enhanced visuals
    - Verbose logging with Rich formatting
@@ -96,6 +105,7 @@ All commands support these global options:
 - `ybb window layout stack [-w WINDOW] [--toggle]`: Stack window siblings or toggle stack/unstack
 - `ybb window resize INCREMENT [-w WINDOW]`: Smart window resize
 - `ybb window close [-w WINDOW] [--except]`: Close window or all other windows in the same space
+- `ybb window table [-d DISPLAY] [-s SPACE]`: Display comprehensive window table with filtering
 
 ### Command Architecture
 
@@ -140,6 +150,17 @@ ybb --verbose space tree -p -N
 # Display tree with colors forced on (useful for piping)
 ybb --color always space tree -p
 
+# Display comprehensive window table
+ybb window table
+
+# Display windows in a specific space (omits Space and Display columns)
+ybb window table --space 1
+ybb window table -s focused
+
+# Display windows on a specific display (omits Display column)
+ybb window table --display 1
+ybb window table -d 2
+
 # Stack siblings of focused window
 ybb window layout stack
 
@@ -176,6 +197,9 @@ ybb window close -w 1234 --except
 - `mise test` - Run test suite
 - `python -m ybb space tree` - Display BSP tree (JSON format)
 - `python -m ybb space tree -p` - Display BSP tree in pretty-print format
+- `python -m ybb window table` - Display comprehensive window table
+- `python -m ybb window table -s 1` - Display windows in space 1
+- `python -m ybb window table -d 1` - Display windows on display 1
 - `python -m ybb window layout stack` - Stack window siblings
 - `python -m ybb window layout stack --toggle` - Toggle stack/unstack
 - `python -m ybb window resize 50` - Resize focused window

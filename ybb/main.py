@@ -9,6 +9,7 @@ from .commands.stack import stack_command
 from .commands.resize import resize_command
 from .commands.switch_split import switch_split_command
 from .commands.close import close_command
+from .commands.table import table_command
 from .console import ColorMode
 from . import console
 
@@ -130,6 +131,19 @@ def _close(
     except_mode: bool = typer.Option(False, "--except", "-e", help="Close all other windows in the same space except the specified window.")
 ):
     close_command(window, except_mode)
+
+@window_app.command(name="table")
+def _table(
+    display: str = typer.Option(None, "--display", "-d", help="Display to filter windows by.", metavar="DISPLAY_SEL"),
+    space: str = typer.Option(None, "--space", "-s", help="Space to filter windows by.", metavar="SPACE_SEL")
+):
+    """Create a table layout of windows."""
+    # Check mutual exclusivity
+    if display is not None and space is not None:
+        logging.error("[red]Error:[/red] --display and --space options are mutually exclusive.")
+        raise typer.Exit(code=1)
+    
+    table_command(display, space)
 
 if __name__ == "__main__":
     app()
